@@ -26,8 +26,8 @@ app.use(express.json()) //allows us to parse JSON format variables
 
 //get the page, loads the DB entries
 app.get('/',async (request, response)=>{
-    const todoItems = await db.collection('todos').find().toArray() //create array of all the notes
-    const itemsLeft = await db.collection('todos').countDocuments({completed: false})  //number of items that are not complete
+    const todoItems = await db.collection('todos').find({deleted: false}).toArray() //create array of all the notes
+    const itemsLeft = await db.collection('todos').countDocuments({completed: false, deleted: false})  //number of items that are not complete
     response.render('index.ejs', { items: todoItems, left: itemsLeft }) // send a response of a render of the .ejs html template
     // db.collection('todos').find().toArray()
     // .then(data => {
@@ -41,7 +41,12 @@ app.get('/',async (request, response)=>{
 
 // creates a new ToDo
 app.post('/addTodo', (request, response) => {
-    db.collection('todos').insertOne({thing: request.body.todoItem, completed: false}) // insert a new note on the todos collection
+    const newDocument = {
+        thing: request.body.todoItem, 
+        completed: false,
+        deleted: false
+    }
+    db.collection('todos').insertOne(newDocument) // insert a new note on the todos collection
     .then(result => {
         console.log('Todo Added') // log confirms
         response.redirect('/') // reload page
@@ -78,7 +83,7 @@ app.put('/markUnComplete', (request, response) => {
         upsert: false
     })
     .then(result => {
-        console.log('Marked Complete')
+        console.log('Marked Uncomplete')
         response.json('Marked Complete')
     })
     .catch(error => console.error(error))
@@ -86,8 +91,17 @@ app.put('/markUnComplete', (request, response) => {
 })
 
 //delete item
-app.delete('/deleteItem', (request, response) => {
-    db.collection('todos').deleteOne({thing: request.body.itemFromJS}) //deletes based on content
+app.put('/deleteItem', (request, response) => {
+    db.collection('todos').updateOne({thing: request.body.itemFromJS},
+       {
+            $set: {
+                deleted: true
+            }
+        },
+        {
+        sort: {_id: -1},
+        upsert: false
+       }) 
     .then(result => {
         console.log('Todo Deleted')
         response.json('Todo Deleted')

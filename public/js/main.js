@@ -23,7 +23,7 @@ async function deleteItem(){
     const itemText = this.parentNode.childNodes[1].innerText
     try{
         const response = await fetch('deleteItem', {
-            method: 'delete',
+            method: 'put',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
               'itemFromJS': itemText
